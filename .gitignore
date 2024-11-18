@@ -1,0 +1,41 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environment variables and secrets
+.env
+*.env
+config.ini
+secrets.json
+api_keys.py
+config.local.py
+
+# Logs
+*.log
+logs/
+
+# Database files
+# Commented out because we want to include the questions database
+# *.db
+# *.sqlite3
