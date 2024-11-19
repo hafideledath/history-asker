@@ -96,12 +96,26 @@ st.text_input(
 st.toggle("Check Answer Line", key="check_answer_line", value=True)
 st.toggle("Check Question Line", key="check_question_line")
 
-st.select_slider(
-    "Select a range of difficulties",
-    options=range(11),
-    value=(0, 10),
-    key="difficulty_range"
-)
+# Create two columns for the sliders
+col1, col2 = st.columns(2)
+
+with col1:
+    st.select_slider(
+        "Select a range of difficulties",
+        options=range(11),
+        value=(0, 10),
+        key="difficulty_range"
+    )
+
+with col2:
+    reading_speed = st.slider(
+        "Reading Speed",
+        min_value=0.5,
+        max_value=2.0,
+        value=1.0,
+        step=0.1,
+        format="%.1fx"
+    )
 
 # Initialize session state variables
 if 'query' not in st.session_state:
@@ -140,18 +154,23 @@ if 'questions' not in st.session_state:
 if 'last_query' not in st.session_state:
     st.session_state['last_query'] = None
 
+# Create feedback container at the top level
+feedback_container = st.empty()
+st.session_state['feedback_container'] = feedback_container
+
 def next_question():
     if 'questions' in st.session_state and st.session_state.questions:
         st.session_state.key_counter += 1
         random_idx = random.randint(0, len(st.session_state.questions) - 1)
         st.session_state.current_question = st.session_state.questions[random_idx][0]
         st.session_state.current_answer = st.session_state.questions[random_idx][1]
-        st.session_state.show_answer = False
+        st.session_state.show_answer = False  # Reset show_answer state
         st.session_state.show_full_question = False
         st.session_state.word_index = 0
         st.session_state.last_update_time = time.time()
         st.session_state.has_buzzed = False
         st.session_state.user_answer = ""  # Reset user answer
+        st.rerun()  # Force a rerun to clear the UI
 
 def handle_buzz():
     st.session_state.has_buzzed = True
@@ -209,6 +228,9 @@ if st.session_state.questions is not None and len(st.session_state.questions) > 
                 
     with col2:
         if st.button("Next Question", key=f"next_{st.session_state.key_counter}", use_container_width=True):
+            # Clear feedback before proceeding
+            feedback_container.empty()
+            st.session_state.show_answer = False
             next_question()
     
     st.subheader("Question:")
@@ -224,7 +246,9 @@ if st.session_state.questions is not None and len(st.session_state.questions) > 
             # Get the current word's length for dynamic delay
             if st.session_state.word_index < len(words):
                 current_word = words[st.session_state.word_index - 1] if st.session_state.word_index > 0 else ""
-                delay = len(current_word) * 0.03 if current_word else 0.03  # 0.03 seconds per character
+                # Adjust delay based on reading speed
+                base_delay = len(current_word) * 0.03 if current_word else 0.03  # Base delay
+                delay = base_delay / reading_speed  # Adjust delay by reading speed
                 
                 if current_time - st.session_state.last_update_time >= delay:
                     st.session_state.word_index += 1
@@ -240,16 +264,18 @@ if st.session_state.questions is not None and len(st.session_state.questions) > 
         # Only rerun if not buzzed and still have words to show
         if st.session_state.word_index < len(words) and not st.session_state.has_buzzed:
             current_word = words[st.session_state.word_index - 1] if st.session_state.word_index > 0 else ""
-            sleep_delay = len(current_word) * 0.02 if current_word else 0.02
+            base_sleep_delay = len(current_word) * 0.02 if current_word else 0.02
+            sleep_delay = base_sleep_delay / reading_speed  # Adjust sleep delay by reading speed
             time.sleep(sleep_delay)
             st.rerun()
     
+    # Use the persistent feedback container for answer feedback
     if st.session_state.show_answer:
         # Check if the answer is semantically correct
         is_correct = check_answer_similarity(st.session_state.user_answer, st.session_state.current_answer)
         if is_correct:
-            st.markdown(f'<div class="correct-answer">{st.session_state.current_answer}</div>', unsafe_allow_html=True)
+            feedback_container.markdown(f'<div class="correct-answer">{st.session_state.current_answer}</div>', unsafe_allow_html=True)
         else:
-            st.markdown(f'<div class="incorrect-answer">{st.session_state.current_answer}</div>', unsafe_allow_html=True)
+            feedback_container.markdown(f'<div class="incorrect-answer">{st.session_state.current_answer}</div>', unsafe_allow_html=True)
 else:
     st.subheader(f'Nothing yet matches your query.')
