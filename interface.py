@@ -6,6 +6,9 @@ import time
 from sentence_transformers import SentenceTransformer, util
 import re
 
+# Set the page title
+st.set_page_config(page_title="Quick Packet Query")
+
 # Initialize the model (this will be cached by Streamlit)
 @st.cache_resource
 def load_model():
